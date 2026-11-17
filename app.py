@@ -184,7 +184,7 @@ batter_value = load_data(
 
 # IMPORTANT: Complete bowler ranking, not old top-10 file.
 
-bowler_ranking = pd.read_csv("bowler_value_under_pressure_all.csv")
+bowler_ranking = load_data(
     "bowler_value_under_pressure_all.csv"
 )
 
