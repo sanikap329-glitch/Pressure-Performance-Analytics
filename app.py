@@ -123,7 +123,7 @@ st.markdown(
 # 3. FILE LOCATIONS
 # ============================================================
 BASE_DIR = Path(__file__).resolve().parent
-DATA_DIR = BASE_DIR / "processed"
+DATA_DIR = BASE_DIR
 
 
 # ============================================================
@@ -184,8 +184,8 @@ batter_value = load_data(
 
 # IMPORTANT: Complete bowler ranking, not old top-10 file.
 
-bowler_ranking = load_data(
-    "all_bowler_pressure_rankings.csv"
+bowler_ranking = pd.read_csv("bowler_value_under_pressure_all.csv")
+    "bowler_value_under_pressure_all.csv"
 )
 
 all_bowler_data = bowler_ranking
