@@ -290,6 +290,8 @@ all_bowler_data = bowler_ranking
 
 model_metrics = load_data("win_probability_model_metrics.csv")
 
+# Delivery-level pressure dataset
+delivery_pressure = pressure_data
 
 # ============================================================
 # DATASET COLLECTION
