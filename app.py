@@ -5,7 +5,7 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
-
+import gdown
 
 # ============================================================
 # 1. PAGE CONFIGURATION
@@ -270,33 +270,25 @@ def load_data(filename):
         }
 
 
-# ============================================================
-# LOAD ALL REQUIRED DATASETS
-# ============================================================
+ 
 
-delivery_pressure = load_data(
-    "delivery_leverage_pressure.csv"
-)
+# ==========================================
+# SECTION 4: LOAD DATASETS
+# ==========================================
 
-match_pressure = load_data(
-    "match_pressure_index.csv"
-)
+pressure_data = load_data("delivery_leverage_pressure.csv")
 
-player_ranking = load_data(
-    "final_player_pressure_ranking.csv"
-)
+mpi_data = load_data("match_pressure_index.csv")
 
-player_value = load_data(
-    "player_value_under_pressure.csv"
-)
+batter_ranking = load_data("final_player_pressure_ranking.csv")
 
-bowler_ranking = load_data(
-    "all_bowler_pressure_rankings.csv"
-)
+batter_value = load_data("player_value_under_pressure.csv")
 
-model_metrics = load_data(
-    "win_probability_model_metrics.csv"
-)
+bowler_ranking = load_data("all_bowler_pressure_rankings.csv")
+
+all_bowler_data = bowler_ranking
+
+model_metrics = load_data("win_probability_model_metrics.csv")
 
 
 # ============================================================
