@@ -292,6 +292,9 @@ model_metrics = load_data("win_probability_model_metrics.csv")
 
 # Delivery-level pressure dataset
 delivery_pressure = pressure_data
+match_pressure = mpi_data
+player_ranking = batter_ranking
+player_value = batter_value
 
 # ============================================================
 # DATASET COLLECTION
