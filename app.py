@@ -143,101 +143,137 @@ GOOGLE_DRIVE_FILES = {
 
 
 
+# ============================================================
+# 4. DOWNLOAD AND LOAD DATASETS
+# ============================================================
 
-# ==========================================
-# SECTION 4: GOOGLE DRIVE DATA LOADING
-# ==========================================
-
-BASE_DIR = Path(__file__).resolve().parent
-DATA_DIR = BASE_DIR / "processed"
-
-DATA_DIR.mkdir(parents=True, exist_ok=True)
-
-DRIVE_FILES = {
-    "delivery_leverage_pressure.csv":
-        "1vHEIld5-k96yOKYzE42tvnSGOGDXlMkh",
-
-    "match_pressure_index.csv":
-        "1U2N9XAcfk_T66sBz6YOYmehw2p-3USdb",
-
-    "final_player_pressure_ranking.csv":
-        "1qhRmBZGfp-UCFaFNQ40p2zBV0vg4d1Vb",
-
-    "player_value_under_pressure.csv":
-        "1ClPYp98mPO5ucfsjNSmG7AvVi9AidZ6Z",
-
-    "all_bowler_pressure_rankings.csv":
-        "1qyfN_-deJXF-Irt9OuCCCUna192KKZbR",
-
-    "win_probability_model_metrics.csv":
-        "1mX7DMsHOOBvGyyjNUKGCGWqQN0Mmi9Jg"
-}
-
-
-def download_if_missing(filename, file_id):
+def download_from_google_drive(filename):
 
     file_path = DATA_DIR / filename
+    file_id = GOOGLE_DRIVE_FILES.get(filename)
 
-    # Reuse an existing downloaded file
-    if file_path.exists() and file_path.stat().st_size > 0:
-        return file_path
-
-    # Download only if the file does not exist
-    url = f"https://drive.google.com/uc?id={file_id}"
-
-    try:
-        result = gdown.download(
-            url,
-            str(file_path),
-            quiet=True
+    # Check whether Google Drive ID is configured
+    if not file_id:
+        raise FileNotFoundError(
+            f"Google Drive ID is not configured for {filename}"
         )
 
-        if result is None or not file_path.exists():
-            raise RuntimeError(f"Download failed: {filename}")
+    try:
+        # Remove old downloaded file to force fresh download
+        if file_path.exists():
+            file_path.unlink()
+
+        # Google Drive download URL
+        url = f"https://drive.google.com/uc?id={file_id}"
+
+        with st.spinner(f"Downloading {filename} from Google Drive..."):
+
+            downloaded_file = gdown.download(
+                url,
+                str(file_path),
+                quiet=False
+            )
+
+        # Verify download
+        if (
+            downloaded_file is None
+            or not file_path.exists()
+            or file_path.stat().st_size == 0
+        ):
+            raise RuntimeError(
+                f"Google Drive download failed for {filename}"
+            )
+
+        # ====================================================
+        # VALIDATE BOWLER RANKING FILE
+        # ====================================================
+
+        if filename == "all_bowler_pressure_rankings.csv":
+
+            required_columns = {
+                "reliability_adjusted_score",
+                "final_rank",
+                "sample_reliability"
+            }
+
+            downloaded_columns = set(
+                pd.read_csv(file_path, nrows=0).columns
+            )
+
+            missing_columns = (
+                required_columns - downloaded_columns
+            )
+
+            if missing_columns:
+                file_path.unlink()
+
+                raise ValueError(
+                    "Incorrect bowler ranking file. "
+                    f"Missing required columns: {missing_columns}"
+                )
 
         return file_path
 
     except Exception as error:
-        st.error(f"Unable to download {filename}: {error}")
-        return None
 
+        if file_path.exists():
+            file_path.unlink()
+
+        raise RuntimeError(
+            f"Unable to download {filename}: {error}"
+        )
+
+
+# ============================================================
+# LOAD CSV WITH STREAMLIT CACHING
+# ============================================================
 
 @st.cache_data(show_spinner=False)
 def load_csv(file_path, modified_time):
 
+    path = Path(file_path)
+
     try:
-        return pd.read_csv(
-            file_path,
+        df = pd.read_csv(
+            path,
             low_memory=False
         )
 
-    except Exception as error:
-        return {"_load_error": str(error)}
+        return df
 
+    except Exception as error:
+
+        return {
+            "_load_error": str(error)
+        }
+
+
+# ============================================================
+# LOAD DATASET FUNCTION
+# ============================================================
 
 def load_data(filename):
 
-    file_id = DRIVE_FILES.get(filename)
+    try:
 
-    if not file_id:
-        return None
+        path = download_from_google_drive(filename)
 
-    file_path = download_if_missing(
-        filename,
-        file_id
-    )
+        return load_csv(
+            str(path),
+            path.stat().st_mtime
+        )
 
-    if file_path is None:
-        return None
+    except Exception as error:
 
-    return load_csv(
-        str(file_path),
-        file_path.stat().st_mtime
-    )
+        return {
+            "_load_error": str(error)
+        }
 
+
+ 
 
 # ==========================================
-# LOAD DATASETS
+# SECTION 4: LOAD DATASETS
 # ==========================================
 
 pressure_data = load_data("delivery_leverage_pressure.csv")
@@ -250,19 +286,35 @@ batter_value = load_data("player_value_under_pressure.csv")
 
 bowler_ranking = load_data("all_bowler_pressure_rankings.csv")
 
+all_bowler_data = bowler_ranking
+
 model_metrics = load_data("win_probability_model_metrics.csv")
 
-
-# ==========================================
-# COMPATIBILITY VARIABLES
-# ==========================================
-
+# Delivery-level pressure dataset
 delivery_pressure = pressure_data
 match_pressure = mpi_data
 player_ranking = batter_ranking
 player_value = batter_value
-all_bowler_data = bowler_ranking
 
+# ============================================================
+# DATASET COLLECTION
+# ============================================================
+
+datasets = {
+
+    "delivery_pressure": delivery_pressure,
+
+    "match_pressure": match_pressure,
+
+    "player_ranking": player_ranking,
+
+    "player_value": player_value,
+
+    "bowler_ranking": bowler_ranking,
+
+    "model_metrics": model_metrics
+
+}
 
 
 # ============================================================
